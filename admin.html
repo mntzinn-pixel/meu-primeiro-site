@@ -2,123 +2,77 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Admin - Minha Loja</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Admin</title>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body {
-  font-family: Arial;
-  margin:0;
-  background:#f4f6f9;
-}
+body { font-family:Arial; background:#f4f6f9; padding:20px; }
 
-header {
-  background:#111;
-  color:white;
-  padding:15px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.container {
-  padding:20px;
-  max-width:1000px;
-  margin:auto;
-}
+h1 { margin-bottom:10px; }
 
 .card {
   background:white;
-  padding:20px;
-  border-radius:8px;
-  margin-bottom:20px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+  padding:15px;
+  margin-bottom:15px;
+  border-radius:10px;
+  box-shadow:0 3px 10px rgba(0,0,0,0.05);
+  position:relative;
 }
 
-input {
-  width:100%;
-  padding:10px;
-  margin-bottom:10px;
+.menu-btn {
+  position:absolute;
+  top:10px;
+  right:10px;
+  cursor:pointer;
+  font-size:20px;
 }
 
-button {
-  padding:8px 12px;
-  border:none;
+.dropdown {
+  display:none;
+  position:absolute;
+  right:10px;
+  top:35px;
+  background:white;
+  border:1px solid #ddd;
   border-radius:5px;
+  box-shadow:0 3px 8px rgba(0,0,0,0.1);
+}
+
+.dropdown div {
+  padding:8px 12px;
   cursor:pointer;
 }
 
-.btn-green { background:green; color:white; }
-.btn-red { background:red; color:white; }
-.btn-dark { background:black; color:white; }
-
-table {
-  width:100%;
-  border-collapse:collapse;
+.dropdown div:hover {
+  background:#f2f2f2;
 }
 
-th, td {
-  padding:10px;
-  border-bottom:1px solid #ddd;
-  text-align:left;
+.dashboard {
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  margin-bottom:20px;
+  box-shadow:0 3px 10px rgba(0,0,0,0.05);
 }
 </style>
 </head>
 
 <body>
 
-<div id="login-area" class="container">
-  <div class="card">
-    <h2>🔐 Login Admin</h2>
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="senha" placeholder="Senha">
-    <button onclick="login()" class="btn-dark">Entrar</button>
-  </div>
+<h1>Painel Administrativo</h1>
+
+<div class="dashboard">
+  <h2>Total Vendido: R$ <span id="totalVendido">0</span></h2>
+  <canvas id="grafico" height="100"></canvas>
 </div>
 
-<div id="admin-area" style="display:none;">
-  <header>
-    <h2>Painel Administrativo</h2>
-    <button onclick="logout()" class="btn-red">Sair</button>
-  </header>
-
-  <div class="container">
-
-    <div class="card">
-      <h3>Adicionar Produto</h3>
-      <input type="text" id="nome" placeholder="Nome do produto">
-      <input type="number" id="preco" placeholder="Preço">
-      <input type="text" id="categoria" placeholder="Categoria">
-      <input type="file" id="imagem" accept="image/*">
-      <button onclick="cadastrarProduto()" class="btn-green">
-        Cadastrar Produto
-      </button>
-    </div>
-
-    <div class="card">
-      <h3>Produtos Cadastrados</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Imagem</th>
-            <th>Nome</th>
-            <th>Categoria</th>
-            <th>Preço</th>
-            <th>Ação</th>
-          </tr>
-        </thead>
-        <tbody id="lista-admin"></tbody>
-      </table>
-    </div>
-
-  </div>
-</div>
+<div id="lista"></div>
 
 <script>
+
 const firebaseConfig = {
   apiKey: "AIzaSyDAnBNdufwLlMW4bZHK0mUgncmIezNSMTg",
   authDomain: "minha-loja-digital1.firebaseapp.com",
@@ -129,94 +83,96 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const db = firebase.firestore();
-const auth = firebase.auth();
 
-auth.onAuthStateChanged(user => {
-  if (user) {
-    document.getElementById("login-area").style.display = "none";
-    document.getElementById("admin-area").style.display = "block";
-    carregarAdmin();
-  } else {
-    document.getElementById("login-area").style.display = "block";
-    document.getElementById("admin-area").style.display = "none";
-  }
-});
+let vendasMensais = {};
 
-function login() {
-  auth.signInWithEmailAndPassword(
-    document.getElementById("email").value,
-    document.getElementById("senha").value
-  ).catch(e => alert(e.message));
-}
+function carregarPedidos(){
+  db.collection("pedidos").orderBy("data","desc").onSnapshot(snapshot=>{
+    const div = document.getElementById("lista");
+    div.innerHTML = "";
+    let totalGeral = 0;
+    vendasMensais = {};
 
-function logout() {
-  auth.signOut();
-}
+    snapshot.forEach(doc=>{
+      const p = doc.data();
+      totalGeral += p.total || 0;
 
-function cadastrarProduto() {
-  const nome = document.getElementById("nome").value;
-  const preco = document.getElementById("preco").value;
-  const categoria = document.getElementById("categoria").value;
-  const arquivo = document.getElementById("imagem").files[0];
+      let data = new Date(p.data.seconds*1000);
+      let mes = data.getMonth()+1 + "/" + data.getFullYear();
 
-  if (!nome || !preco || !categoria || !arquivo) {
-    alert("Preencha todos os campos!");
-    return;
-  }
+      if(!vendasMensais[mes]){
+        vendasMensais[mes] = 0;
+      }
+      vendasMensais[mes] += p.total || 0;
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    db.collection("produtos").add({
-      nome,
-      preco: parseFloat(preco),
-      categoria,
-      imagem: e.target.result,
-      criadoEm: new Date()
-    }).then(() => {
-      document.getElementById("nome").value = "";
-      document.getElementById("preco").value = "";
-      document.getElementById("categoria").value = "";
-      document.getElementById("imagem").value = "";
-      carregarAdmin();
-    });
-  };
-  reader.readAsDataURL(arquivo);
-}
+      div.innerHTML += `
+        <div class="card">
+          <div class="menu-btn" onclick="toggleMenu('${doc.id}')">⋮</div>
 
-function excluirProduto(id) {
-  if (confirm("Excluir produto?")) {
-    db.collection("produtos").doc(id).delete().then(() => {
-      carregarAdmin();
-    });
-  }
-}
+          <div class="dropdown" id="menu-${doc.id}">
+            <div onclick="alterarStatus('${doc.id}')">Alterar Status</div>
+            <div onclick="excluirPedido('${doc.id}')">Excluir</div>
+          </div>
 
-function carregarAdmin() {
-  const lista = document.getElementById("lista-admin");
-  lista.innerHTML = "";
-
-  db.collection("produtos").orderBy("criadoEm", "desc")
-  .get().then(snapshot => {
-    snapshot.forEach(doc => {
-      const d = doc.data();
-      lista.innerHTML += `
-        <tr>
-          <td><img src="${d.imagem}" width="50"></td>
-          <td>${d.nome}</td>
-          <td>${d.categoria}</td>
-          <td>R$ ${d.preco}</td>
-          <td>
-            <button onclick="excluirProduto('${doc.id}')" class="btn-red">
-              Excluir
-            </button>
-          </td>
-        </tr>
+          <strong>Data:</strong> ${data.toLocaleString()}<br>
+          <strong>Total:</strong> R$ ${p.total}<br>
+          <strong>Status:</strong> ${p.status}
+        </div>
       `;
     });
+
+    document.getElementById("totalVendido").innerText = totalGeral.toFixed(2);
+
+    criarGrafico();
   });
 }
+
+function toggleMenu(id){
+  let menu = document.getElementById("menu-"+id);
+  menu.style.display = menu.style.display === "block" ? "none" : "block";
+}
+
+function excluirPedido(id){
+  if(confirm("Deseja excluir este pedido?")){
+    db.collection("pedidos").doc(id).delete();
+  }
+}
+
+function alterarStatus(id){
+  let novo = prompt("Digite novo status:");
+  if(novo){
+    db.collection("pedidos").doc(id).update({status: novo});
+  }
+}
+
+let grafico;
+
+function criarGrafico(){
+
+  let labels = Object.keys(vendasMensais);
+  let valores = Object.values(vendasMensais);
+
+  if(grafico){
+    grafico.destroy();
+  }
+
+  const ctx = document.getElementById("grafico").getContext("2d");
+
+  grafico = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Vendas por Mês",
+        data: valores
+      }]
+    }
+  });
+}
+
+carregarPedidos();
+
 </script>
 
 </body>
