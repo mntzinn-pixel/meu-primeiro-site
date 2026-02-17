@@ -3,140 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Minha Loja Digital</title>
+<title>Minha Loja</title>
 
 <style>
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #0b0f1a;
-    color: white;
-}
-
-header {
-    text-align: center;
-    padding: 40px 20px;
-    background: linear-gradient(135deg, #2563eb, #7c3aed);
-}
-
-header h1 {
-    margin: 0;
-}
-
-.produtos {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-    padding: 30px;
-}
-
-.card {
-    background: #111827;
-    border-radius: 15px;
-    padding: 15px;
-    text-align: center;
-    border: 2px solid #22c55e;
-    box-shadow: 0 0 15px rgba(34,197,94,0.6);
-    transition: 0.3s;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-}
-
-.card img {
-    width: 100%;
-    border-radius: 10px;
-}
-
-.antigo {
-    text-decoration: line-through;
-    color: #9ca3af;
-}
-
-.preco {
-    font-size: 22px;
-    font-weight: bold;
-    color: #22c55e;
-}
-
-.pix {
-    font-size: 14px;
-    color: #9ca3af;
-}
-
-.btn {
-    display: inline-block;
-    margin-top: 10px;
-    padding: 10px 20px;
-    background: #2563eb;
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
-    font-weight: bold;
-}
-
-.whatsapp {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: #22c55e;
-    color: white;
-    font-size: 24px;
-    padding: 15px;
-    border-radius: 50%;
-    text-decoration: none;
-    box-shadow: 0 0 15px rgba(34,197,94,0.7);
-}
+body { margin:0; font-family:Arial; background:#0b0f1a; color:white; }
+header { text-align:center; padding:30px; background:linear-gradient(135deg,#2563eb,#7c3aed); }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:20px; padding:20px; }
+.card { background:#111827; padding:15px; border-radius:10px; text-align:center; }
+.preco { color:#22c55e; font-weight:bold; font-size:20px; }
+.btn { display:inline-block; margin-top:10px; padding:8px 15px; background:#2563eb; color:white; text-decoration:none; border-radius:6px; }
 </style>
 </head>
 <body>
 
 <header>
-    <h1>🚀 Minha Loja Digital</h1>
-    <p>Produtos digitais, revendas e serviços</p>
+<h1>🚀 Minha Loja Digital</h1>
 </header>
 
-<section class="produtos">
+<section class="grid" id="produtos"></section>
 
-    <div class="card">
-        <img src="https://via.placeholder.com/300x180" alt="Produto">
-        <h3>Produto Digital Premium</h3>
-        <p class="antigo">R$ 97,00</p>
-        <p class="preco">R$ 37,40</p>
-        <p class="pix">À vista no PIX</p>
-        <a href="https://wa.me/5531993178577?text=Olá,%20vim%20pelo%20site%20e%20tenho%20interesse%20no%20Produto%20Digital%20Premium" class="btn">
+<script>
+let container = document.getElementById("produtos");
+let produtos = JSON.parse(localStorage.getItem("produtos")) || [];
+
+produtos.forEach(prod => {
+    container.innerHTML += `
+        <div class="card">
+            <h3>${prod.nome}</h3>
+            <p class="preco">R$ ${prod.preco}</p>
+            <a href="https://wa.me/5531993178577?text=Olá,%20tenho%20interesse%20no%20${prod.nome}" class="btn">
             Comprar
-        </a>
-    </div>
-
-    <div class="card">
-        <img src="https://via.placeholder.com/300x180" alt="Produto">
-        <h3>Serviço Especial</h3>
-        <p class="antigo">R$ 78,50</p>
-        <p class="preco">R$ 28,98</p>
-        <p class="pix">À vista no PIX</p>
-        <a href="https://wa.me/5531993178577?text=Olá,%20vim%20pelo%20site%20e%20tenho%20interesse%20no%20Serviço%20Especial" class="btn">
-            Comprar
-        </a>
-    </div>
-
-    <div class="card">
-        <img src="https://via.placeholder.com/300x180" alt="Produto">
-        <h3>Pacote Revenda</h3>
-        <p class="antigo">R$ 120,00</p>
-        <p class="preco">R$ 59,90</p>
-        <p class="pix">À vista no PIX</p>
-        <a href="https://wa.me/5531993178577?text=Olá,%20vim%20pelo%20site%20e%20quero%20informações%20sobre%20o%20Pacote%20Revenda" class="btn">
-            Comprar
-        </a>
-    </div>
-
-</section>
-
-<a href="https://wa.me/5531993178577?text=Olá,%20vim%20pelo%20site%20e%20quero%20mais%20informações" class="whatsapp">
-💬
-</a>
+            </a>
+        </div>
+    `;
+});
+</script>
 
 </body>
 </html>
