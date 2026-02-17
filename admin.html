@@ -5,145 +5,162 @@
 <title>Painel Admin</title>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body{margin:0;font-family:Arial;background:#f1f5f9;}
-.topbar{background:#111;color:white;padding:15px;font-size:18px;}
-.layout{display:flex;}
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+}
+.topbar{
+  background:#111827;
+  padding:15px;
+  display:flex;
+  align-items:center;
+}
+.menu-btn{
+  font-size:22px;
+  cursor:pointer;
+  margin-right:15px;
+}
 .sidebar{
- width:230px;
- background:#1e293b;
- height:100vh;
- color:white;
- padding-top:20px;
+  position:fixed;
+  left:-240px;
+  top:0;
+  width:240px;
+  height:100%;
+  background:#111827;
+  padding-top:60px;
+  transition:0.3s;
 }
 .sidebar div{
- padding:15px;
- cursor:pointer;
+  padding:15px;
+  cursor:pointer;
 }
 .sidebar div:hover{
- background:#334155;
+  background:#1f2937;
+}
+.sidebar.active{
+  left:0;
 }
 .content{
- flex:1;
- padding:20px;
+  padding:20px;
 }
 .card{
- background:white;
- padding:20px;
- border-radius:10px;
- margin-bottom:20px;
- box-shadow:0 3px 10px rgba(0,0,0,0.05);
+  background:#1f2937;
+  padding:20px;
+  border-radius:10px;
+  margin-bottom:20px;
 }
 input,select{
- width:100%;
- padding:8px;
- margin:5px 0;
+  width:100%;
+  padding:8px;
+  margin:5px 0;
+  background:#111827;
+  border:1px solid #374151;
+  color:white;
 }
 button{
- padding:6px 10px;
- border:none;
- border-radius:5px;
- cursor:pointer;
- margin-top:5px;
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
 }
-.btn{background:#111;color:white;}
-.btn-edit{background:orange;color:white;}
-.btn-del{background:red;color:white;}
+.btn{background:#2563eb;color:white;}
+.btn-del{background:#dc2626;color:white;}
 .hidden{display:none;}
 table{
- width:100%;
- border-collapse:collapse;
+  width:100%;
+  border-collapse:collapse;
 }
 th,td{
- padding:10px;
- border-bottom:1px solid #ddd;
- text-align:left;
+  padding:10px;
+  border-bottom:1px solid #374151;
+}
+.login-box{
+  max-width:300px;
+  margin:100px auto;
+  background:#1f2937;
+  padding:30px;
+  border-radius:10px;
 }
 </style>
 </head>
 <body>
 
-<div class="topbar">Painel Administrativo</div>
+<div id="loginPage">
+  <div class="login-box">
+    <h2>Login Admin</h2>
+    <input id="email" placeholder="Email">
+    <input id="senha" type="password" placeholder="Senha">
+    <button class="btn" onclick="login()">Entrar</button>
+  </div>
+</div>
 
-<div class="layout">
+<div id="painel" class="hidden">
 
-<div class="sidebar">
-  <div onclick="mostrar('dashboard')">📊 Dashboard</div>
-  <div onclick="mostrar('pedidos')">📦 Pedidos</div>
-  <div onclick="mostrar('produtos')">🛍 Produtos</div>
-  <div onclick="mostrar('categorias')">🗂 Categorias</div>
+<div class="topbar">
+  <div class="menu-btn" onclick="toggleMenu()">☰</div>
+  Painel Administrativo
+</div>
+
+<div class="sidebar" id="sidebar">
+  <div onclick="mostrar('dashboard')">Dashboard</div>
+  <div onclick="mostrar('produtos')">Produtos</div>
+  <div onclick="mostrar('categorias')">Categorias</div>
+  <div onclick="logout()">Sair</div>
 </div>
 
 <div class="content">
 
-<!-- DASHBOARD -->
 <div id="dashboard">
   <div class="card">
-    <h2>Total Vendido: R$ <span id="totalVendido">0</span></h2>
+    <h3>Total Vendido: R$ <span id="totalVendido">0</span></h3>
     <canvas id="grafico"></canvas>
   </div>
 </div>
 
-<!-- PEDIDOS -->
-<div id="pedidos" class="hidden">
-  <div id="listaPedidos"></div>
-</div>
-
-<!-- PRODUTOS -->
 <div id="produtos" class="hidden">
-
   <div class="card">
     <h3>Criar / Editar Produto</h3>
     <input id="pNome" placeholder="Nome">
     <input id="pPreco" type="number" placeholder="Preço">
-    <input id="pImagem" placeholder="URL da imagem">
+    <input id="pImagem" placeholder="Imagem URL">
     <select id="pCategoria"></select>
     <input type="hidden" id="pId">
     <button class="btn" onclick="salvarProduto()">Salvar</button>
   </div>
 
   <div class="card">
-    <h3>Lista de Produtos</h3>
     <table>
       <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Preço</th>
-          <th>Ações</th>
-        </tr>
+        <tr><th>Nome</th><th>Preço</th><th>Ações</th></tr>
       </thead>
       <tbody id="tabelaProdutos"></tbody>
     </table>
   </div>
-
 </div>
 
-<!-- CATEGORIAS -->
 <div id="categorias" class="hidden">
-
   <div class="card">
     <h3>Criar / Editar Categoria</h3>
-    <input id="cNome" placeholder="Nome da categoria">
+    <input id="cNome" placeholder="Nome">
     <input type="hidden" id="cId">
     <button class="btn" onclick="salvarCategoria()">Salvar</button>
   </div>
 
   <div class="card">
-    <h3>Lista de Categorias</h3>
     <table>
       <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Ações</th>
-        </tr>
+        <tr><th>Nome</th><th>Ações</th></tr>
       </thead>
       <tbody id="tabelaCategorias"></tbody>
     </table>
   </div>
-
 </div>
 
 </div>
@@ -151,114 +168,157 @@ th,td{
 
 <script>
 const firebaseConfig={
-  apiKey:"SUA_API_KEY",
-  authDomain:"SEU_AUTH",
-  projectId:"SEU_PROJECT_ID"
+  apiKey:"AIzaSyDAnBNdufwLlMW4bZHK0mUgncmIezNSMTg",
+  authDomain:"minha-loja-digital1.firebaseapp.com",
+  projectId:"minha-loja-digital1"
 };
+
 firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
 const db=firebase.firestore();
 
-function mostrar(sec){
- ["dashboard","pedidos","produtos","categorias"].forEach(s=>{
-   document.getElementById(s).classList.add("hidden");
- });
- document.getElementById(sec).classList.remove("hidden");
+auth.onAuthStateChanged(user=>{
+  if(user){
+    loginPage.classList.add("hidden");
+    painel.classList.remove("hidden");
+  }else{
+    loginPage.classList.remove("hidden");
+    painel.classList.add("hidden");
+  }
+});
+
+function login(){
+  auth.signInWithEmailAndPassword(email.value,senha.value)
+  .catch(e=>alert("Erro no login"));
 }
 
+function logout(){
+  auth.signOut();
+}
+
+function toggleMenu(){
+  sidebar.classList.toggle("active");
+}
+
+function mostrar(sec){
+  ["dashboard","produtos","categorias"].forEach(s=>{
+    document.getElementById(s).classList.add("hidden");
+  });
+  document.getElementById(sec).classList.remove("hidden");
+}
+
+/* DASHBOARD */
+let grafico;
+db.collection("pedidos").onSnapshot(snapshot=>{
+  let total=0;
+  let meses={};
+
+  snapshot.forEach(doc=>{
+    let p=doc.data();
+    total+=p.total||0;
+    if(p.data){
+      let d=new Date(p.data.seconds*1000);
+      let mes=(d.getMonth()+1)+"/"+d.getFullYear();
+      meses[mes]=(meses[mes]||0)+(p.total||0);
+    }
+  });
+
+  totalVendido.innerText=total.toFixed(2);
+
+  if(grafico)grafico.destroy();
+  grafico=new Chart(grafico=document.getElementById("grafico"),{
+    type:"line",
+    data:{
+      labels:Object.keys(meses),
+      datasets:[{label:"Faturamento",data:Object.values(meses)}]
+    }
+  });
+});
+
 /* PRODUTOS */
-
 function salvarProduto(){
- let id=pId.value;
- let dados={
-   nome:pNome.value,
-   preco:parseFloat(pPreco.value),
-   imagem:pImagem.value,
-   categoria:pCategoria.value
- };
+  let id=pId.value;
+  let dados={
+    nome:pNome.value,
+    preco:parseFloat(pPreco.value),
+    imagem:pImagem.value,
+    categoria:pCategoria.value
+  };
 
- if(id){
-   db.collection("produtos").doc(id).update(dados);
- }else{
-   db.collection("produtos").add(dados);
- }
+  if(id){
+    db.collection("produtos").doc(id).update(dados);
+  }else{
+    db.collection("produtos").add(dados);
+  }
 
- pNome.value="";
- pPreco.value="";
- pImagem.value="";
- pId.value="";
+  pNome.value="";pPreco.value="";pImagem.value="";pId.value="";
 }
 
 db.collection("produtos").onSnapshot(snapshot=>{
- let tabela=document.getElementById("tabelaProdutos");
- tabela.innerHTML="";
- snapshot.forEach(doc=>{
-   let p=doc.data();
-   tabela.innerHTML+=`
-   <tr>
-     <td>${p.nome}</td>
-     <td>R$ ${p.preco}</td>
-     <td>
-       <button class="btn-edit" onclick="editarProduto('${doc.id}','${p.nome}','${p.preco}','${p.imagem}','${p.categoria}')">Editar</button>
-       <button class="btn-del" onclick="excluirProduto('${doc.id}')">Excluir</button>
-     </td>
-   </tr>`;
- });
+  tabelaProdutos.innerHTML="";
+  snapshot.forEach(doc=>{
+    let p=doc.data();
+    tabelaProdutos.innerHTML+=`
+      <tr>
+        <td>${p.nome}</td>
+        <td>R$ ${p.preco}</td>
+        <td>
+          <button onclick="editarProduto('${doc.id}','${p.nome}','${p.preco}','${p.imagem}','${p.categoria}')">Editar</button>
+          <button class="btn-del" onclick="excluirProduto('${doc.id}')">Excluir</button>
+        </td>
+      </tr>`;
+  });
 });
 
 function editarProduto(id,nome,preco,imagem,categoria){
- pId.value=id;
- pNome.value=nome;
- pPreco.value=preco;
- pImagem.value=imagem;
- pCategoria.value=categoria;
+  pId.value=id;
+  pNome.value=nome;
+  pPreco.value=preco;
+  pImagem.value=imagem;
+  pCategoria.value=categoria;
 }
 
 function excluirProduto(id){
- db.collection("produtos").doc(id).delete();
+  db.collection("produtos").doc(id).delete();
 }
 
 /* CATEGORIAS */
-
 function salvarCategoria(){
- let id=cId.value;
- let dados={nome:cNome.value};
+  let id=cId.value;
+  let dados={nome:cNome.value};
 
- if(id){
-   db.collection("categorias").doc(id).update(dados);
- }else{
-   db.collection("categorias").add(dados);
- }
-
- cNome.value="";
- cId.value="";
+  if(id){
+    db.collection("categorias").doc(id).update(dados);
+  }else{
+    db.collection("categorias").add(dados);
+  }
+  cNome.value="";cId.value="";
 }
 
 db.collection("categorias").onSnapshot(snapshot=>{
- let tabela=document.getElementById("tabelaCategorias");
- let select=document.getElementById("pCategoria");
- tabela.innerHTML="";
- select.innerHTML="";
- snapshot.forEach(doc=>{
-   let c=doc.data();
-   tabela.innerHTML+=`
-   <tr>
-     <td>${c.nome}</td>
-     <td>
-       <button class="btn-edit" onclick="editarCategoria('${doc.id}','${c.nome}')">Editar</button>
-       <button class="btn-del" onclick="excluirCategoria('${doc.id}')">Excluir</button>
-     </td>
-   </tr>`;
-   select.innerHTML+=`<option value="${c.nome}">${c.nome}</option>`;
- });
+  tabelaCategorias.innerHTML="";
+  pCategoria.innerHTML="";
+  snapshot.forEach(doc=>{
+    let c=doc.data();
+    tabelaCategorias.innerHTML+=`
+      <tr>
+        <td>${c.nome}</td>
+        <td>
+          <button onclick="editarCategoria('${doc.id}','${c.nome}')">Editar</button>
+          <button class="btn-del" onclick="excluirCategoria('${doc.id}')">Excluir</button>
+        </td>
+      </tr>`;
+    pCategoria.innerHTML+=`<option value="${c.nome}">${c.nome}</option>`;
+  });
 });
 
 function editarCategoria(id,nome){
- cId.value=id;
- cNome.value=nome;
+  cId.value=id;
+  cNome.value=nome;
 }
 
 function excluirCategoria(id){
- db.collection("categorias").doc(id).delete();
+  db.collection("categorias").doc(id).delete();
 }
 </script>
 
