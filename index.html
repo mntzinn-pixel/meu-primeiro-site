@@ -17,7 +17,7 @@ header { background:#111; color:white; padding:15px; display:flex; justify-conte
 .card { background:white; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
 .card img { width:100%; height:200px; object-fit:cover; }
 .card-body { padding:15px; }
-button { padding:8px 12px; border:none; border-radius:5px; cursor:pointer; }
+button { padding:8px 12px; border:none; border-radius:5px; cursor:pointer; margin-top:5px; }
 .btn-dark { background:#111; color:white; }
 .btn-green { background:green; color:white; }
 .btn-red { background:red; color:white; }
@@ -36,7 +36,7 @@ input { width:100%; padding:10px; margin-bottom:10px; }
 <div class="container">
 
   <div id="login-area" class="area">
-    <h3>Entrar / Criar Conta</h3>
+    <h3>Entrar ou Criar Conta</h3>
     <input type="email" id="email" placeholder="Email">
     <input type="password" id="senha" placeholder="Senha">
     <button onclick="login()" class="btn-dark">Entrar</button>
@@ -169,15 +169,20 @@ function remover(i) {
 
 function finalizarCompra() {
   const user = auth.currentUser;
-  if (carrinho.length === 0) return alert("Carrinho vazio!");
+
+  if (carrinho.length === 0) {
+    alert("Carrinho vazio!");
+    return;
+  }
 
   db.collection("pedidos").add({
     userId: user.uid,
     email: user.email,
     itens: carrinho,
-    data: new Date()
+    data: new Date(),
+    status: "Pendente"
   }).then(() => {
-    alert("Pedido realizado!");
+    alert("Pedido realizado com sucesso!");
     carrinho = [];
     atualizarCarrinho();
     carregarPedidos();
@@ -198,6 +203,7 @@ function carregarPedidos() {
         div.innerHTML += `
           <div style="margin-bottom:10px;">
             Pedido em ${new Date(p.data.seconds*1000).toLocaleString()}
+            - Status: ${p.status}
             (${p.itens.length} itens)
           </div>
         `;
