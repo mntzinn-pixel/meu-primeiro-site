@@ -13,10 +13,6 @@ body {
     padding: 20px;
 }
 
-h1 {
-    margin-bottom: 20px;
-}
-
 input, textarea {
     width: 100%;
     padding: 10px;
@@ -64,7 +60,8 @@ img {
 <input type="text" id="nome" placeholder="Nome do produto">
 <input type="text" id="preco" placeholder="Preço">
 <textarea id="descricao" placeholder="Descrição"></textarea>
-<input type="text" id="imagem" placeholder="URL da imagem">
+
+<input type="file" id="imagem" accept="image/*">
 
 <button class="add-btn" onclick="adicionarProduto()">Adicionar Produto</button>
 
@@ -83,7 +80,7 @@ function carregarProdutos() {
                 <h3>${produto.nome}</h3>
                 <p><strong>R$ ${produto.preco}</strong></p>
                 <p>${produto.descricao}</p>
-                <img src="${produto.imagem}">
+                ${produto.imagem ? `<img src="${produto.imagem}">` : ""}
                 <button class="delete-btn" onclick="excluirProduto(${index})">Excluir</button>
             </div>
         `;
@@ -94,25 +91,42 @@ function adicionarProduto() {
     const nome = document.getElementById("nome").value;
     const preco = document.getElementById("preco").value;
     const descricao = document.getElementById("descricao").value;
-    const imagem = document.getElementById("imagem").value;
+    const imagemInput = document.getElementById("imagem");
 
     if (!nome || !preco) {
         alert("Preencha nome e preço!");
         return;
     }
 
-    const produtos = JSON.parse(localStorage.getItem("produtos")) || [];
+    const reader = new FileReader();
 
-    produtos.push({ nome, preco, descricao, imagem });
+    reader.onload = function() {
+        const imagemBase64 = reader.result;
 
-    localStorage.setItem("produtos", JSON.stringify(produtos));
+        const produtos = JSON.parse(localStorage.getItem("produtos")) || [];
 
-    document.getElementById("nome").value = "";
-    document.getElementById("preco").value = "";
-    document.getElementById("descricao").value = "";
-    document.getElementById("imagem").value = "";
+        produtos.push({
+            nome,
+            preco,
+            descricao,
+            imagem: imagemBase64
+        });
 
-    carregarProdutos();
+        localStorage.setItem("produtos", JSON.stringify(produtos));
+
+        document.getElementById("nome").value = "";
+        document.getElementById("preco").value = "";
+        document.getElementById("descricao").value = "";
+        imagemInput.value = "";
+
+        carregarProdutos();
+    };
+
+    if (imagemInput.files[0]) {
+        reader.readAsDataURL(imagemInput.files[0]);
+    } else {
+        reader.onload();
+    }
 }
 
 function excluirProduto(index) {
