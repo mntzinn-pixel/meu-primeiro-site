@@ -60,6 +60,9 @@ th,td{padding:10px;border-bottom:1px solid #374151;}
 <div id="dashboard">
   <div class="card">
     <h3>Total Vendido: R$ <span id="totalVendido">0</span></h3>
+    <p>Total de Visitas: <span id="totalVisitas">0</span></p>
+    <p>Total de Cliques: <span id="totalCliques">0</span></p>
+    <p>Produto Mais Clicado: <span id="produtoTop">Nenhum</span></p>
     <canvas id="grafico"></canvas>
   </div>
 </div>
@@ -69,6 +72,7 @@ th,td{padding:10px;border-bottom:1px solid #374151;}
     <h3>Criar / Editar Produto</h3>
     <input id="pNome" placeholder="Nome">
     <input id="pPreco" type="number" placeholder="Preço">
+    <input type="number" id="pEstoque" placeholder="Estoque">
     <input type="file" id="pImagem">
     <select id="pCategoria"></select>
     <input type="hidden" id="pId">
@@ -78,7 +82,13 @@ th,td{padding:10px;border-bottom:1px solid #374151;}
   <div class="card">
     <table>
       <thead>
-        <tr><th>Nome</th><th>Preço</th><th>Ações</th></tr>
+        <tr>
+          <th>Nome</th>
+          <th>Preço</th>
+          <th>Estoque</th>
+          <th>Cliques</th>
+          <th>Ações</th>
+        </tr>
       </thead>
       <tbody id="tabelaProdutos"></tbody>
     </table>
@@ -111,7 +121,9 @@ const firebaseConfig={
   apiKey:"AIzaSyDAnBNdufwLlMW4bZHK0mUgncmIezNSMTg",
   authDomain:"minha-loja-digital1.firebaseapp.com",
   projectId:"minha-loja-digital1",
-  storageBucket:"minha-loja-digital1.appspot.com"
+  storageBucket:"minha-loja-digital1.firebasestorage.app",
+  messagingSenderId:"119834670597",
+  appId:"1:119834670597:web:36edb828d7fdded6678e6c"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -120,6 +132,7 @@ const db=firebase.firestore();
 const storage=firebase.storage();
 const sidebar=document.getElementById("sidebar");
 
+/* LOGIN */
 auth.onAuthStateChanged(user=>{
   if(user){
     loginPage.classList.add("hidden");
@@ -129,37 +142,20 @@ auth.onAuthStateChanged(user=>{
     painel.classList.add("hidden");
   }
 });
-
-function login(){
-  auth.signInWithEmailAndPassword(email.value,senha.value)
-  .catch(()=>alert("Erro no login"));
-}
-
+function login(){ auth.signInWithEmailAndPassword(email.value,senha.value).catch(()=>alert("Erro no login")); }
 function logout(){ auth.signOut(); }
 function toggleMenu(){ sidebar.classList.toggle("active"); }
-
 function mostrar(sec){
-  ["dashboard","produtos","categorias"].forEach(s=>{
-    document.getElementById(s).classList.add("hidden");
-  });
+  ["dashboard","produtos","categorias"].forEach(s=>document.getElementById(s).classList.add("hidden"));
   document.getElementById(sec).classList.remove("hidden");
   sidebar.classList.remove("active");
 }
-
-document.addEventListener("click",function(e){
-  if(!sidebar.contains(e.target) && !e.target.classList.contains("menu-btn")){
-    sidebar.classList.remove("active");
-  }
-});
 
 /* DASHBOARD */
 let grafico;
 db.collection("pedidos").onSnapshot(snapshot=>{
   let total=0;
-  snapshot.forEach(doc=>{
-    let p=doc.data();
-    total+=p.total||0;
-  });
+  snapshot.forEach(doc=> total+=doc.data().total||0 );
   totalVendido.innerText=total.toFixed(2);
   if(grafico)grafico.destroy();
   grafico=new Chart(document.getElementById("grafico"),{
@@ -168,13 +164,51 @@ db.collection("pedidos").onSnapshot(snapshot=>{
   });
 });
 
-/* PRODUTOS COM UPLOAD */
+/* VISITAS */
+db.collection("visitas").onSnapshot(snapshot=>{
+  totalVisitas.innerText=snapshot.size;
+});
+
+/* PRODUTOS + CLIQUES */
+db.collection("produtos").onSnapshot(snapshot=>{
+  tabelaProdutos.innerHTML="";
+  let totalCliquesGeral=0;
+  let maior=0;
+  let nomeTop="Nenhum";
+
+  snapshot.forEach(doc=>{
+    let p=doc.data();
+    let estoque=p.estoque??0;
+    let cliques=p.cliques??0;
+
+    totalCliquesGeral+=cliques;
+    if(cliques>maior){ maior=cliques; nomeTop=p.nome; }
+
+    tabelaProdutos.innerHTML+=`
+      <tr>
+        <td>${p.nome}</td>
+        <td>R$ ${p.preco}</td>
+        <td>${estoque}</td>
+        <td>${cliques}</td>
+        <td>
+          <button onclick="editarProduto('${doc.id}','${p.nome}','${p.preco}','${p.categoria}','${estoque}')">Editar</button>
+          <button class="btn-del" onclick="excluirProduto('${doc.id}')">Excluir</button>
+        </td>
+      </tr>`;
+  });
+
+  totalCliques.innerText=totalCliquesGeral;
+  produtoTop.innerText=nomeTop;
+});
+
+/* SALVAR PRODUTO */
 async function salvarProduto(){
   let id=pId.value;
   let nome=pNome.value;
   let preco=parseFloat(pPreco.value);
   let categoria=pCategoria.value;
-  let arquivo=document.getElementById("pImagem").files[0];
+  let estoque=parseInt(pEstoque.value)||0;
+  let arquivo=pImagem.files[0];
   let imagemURL="";
 
   if(arquivo){
@@ -183,78 +217,13 @@ async function salvarProduto(){
     imagemURL=await ref.getDownloadURL();
   }
 
-  let dados={nome,preco,categoria};
+  let dados={nome,preco,categoria,estoque};
   if(imagemURL) dados.imagem=imagemURL;
 
-  if(id){
-    db.collection("produtos").doc(id).update(dados);
-  }else{
-    db.collection("produtos").add(dados);
-  }
+  if(id) db.collection("produtos").doc(id).update(dados);
+  else db.collection("produtos").add({...dados,cliques:0});
 
-  pNome.value="";pPreco.value="";pImagem.value="";pId.value="";
-}
-
-db.collection("produtos").onSnapshot(snapshot=>{
-  tabelaProdutos.innerHTML="";
-  snapshot.forEach(doc=>{
-    let p=doc.data();
-    tabelaProdutos.innerHTML+=`
-      <tr>
-        <td>${p.nome}</td>
-        <td>R$ ${p.preco}</td>
-        <td>
-          <button onclick="editarProduto('${doc.id}','${p.nome}','${p.preco}','${p.categoria}')">Editar</button>
-          <button class="btn-del" onclick="excluirProduto('${doc.id}')">Excluir</button>
-        </td>
-      </tr>`;
-  });
-});
-
-function editarProduto(id,nome,preco,categoria){
-  pId.value=id;
-  pNome.value=nome;
-  pPreco.value=preco;
-  pCategoria.value=categoria;
-}
-
-function excluirProduto(id){
-  db.collection("produtos").doc(id).delete();
-}
-
-/* CATEGORIAS */
-function salvarCategoria(){
-  let id=cId.value;
-  let dados={nome:cNome.value};
-  if(id){ db.collection("categorias").doc(id).update(dados); }
-  else{ db.collection("categorias").add(dados); }
-  cNome.value="";cId.value="";
-}
-
-db.collection("categorias").onSnapshot(snapshot=>{
-  tabelaCategorias.innerHTML="";
-  pCategoria.innerHTML="";
-  snapshot.forEach(doc=>{
-    let c=doc.data();
-    tabelaCategorias.innerHTML+=`
-      <tr>
-        <td>${c.nome}</td>
-        <td>
-          <button onclick="editarCategoria('${doc.id}','${c.nome}')">Editar</button>
-          <button class="btn-del" onclick="excluirCategoria('${doc.id}')">Excluir</button>
-        </td>
-      </tr>`;
-    pCategoria.innerHTML+=`<option value="${c.nome}">${c.nome}</option>`;
-  });
-});
-
-function editarCategoria(id,nome){
-  cId.value=id;
-  cNome.value=nome;
-}
-
-function excluirCategoria(id){
-  db.collection("categorias").doc(id).delete();
+  pNome.value="";pPreco.value="";pImagem.value="";pId.value="";pEstoque.value="";
 }
 </script>
 
