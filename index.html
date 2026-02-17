@@ -167,12 +167,15 @@ db.collection("produtos").onSnapshot(snapshot=>{
 });
 
 function renderProdutos(lista){
-  listaProdutos.innerHTML="";
+  const container=document.getElementById("listaProdutos");
+  container.innerHTML="";
+
   lista.forEach(p=>{
+
     let precoAntigo=(p.preco*1.3).toFixed(2);
     let desconto=Math.floor(100-(p.preco/precoAntigo*100));
 
-    listaProdutos.innerHTML+=`
+    container.innerHTML+=`
       <div class="card">
         <img src="${p.imagem || 'https://via.placeholder.com/300'}">
         <div class="card-content">
@@ -181,7 +184,7 @@ function renderProdutos(lista){
           <div class="preco-antigo">R$ ${precoAntigo}</div>
           <div class="preco">R$ ${p.preco}</div>
           <div class="pix">⚡ À vista no PIX</div>
-          <button onclick="comprar('${p.id}','${p.nome}',${p.preco}')">
+          <button onclick="comprar('${p.id}','${p.nome}',${p.preco})">
             Comprar
           </button>
         </div>
@@ -190,9 +193,11 @@ function renderProdutos(lista){
   });
 }
 
-search.addEventListener("input",()=>{
-  let texto=search.value.toLowerCase();
-  let filtrados=produtos.filter(p=>p.nome.toLowerCase().includes(texto));
+document.getElementById("search").addEventListener("input",function(){
+  let texto=this.value.toLowerCase();
+  let filtrados=produtos.filter(p=>
+    p.nome.toLowerCase().includes(texto)
+  );
   renderProdutos(filtrados);
 });
 
