@@ -5,12 +5,11 @@
   <title>Minha Loja</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 </head>
 
-<body style="font-family: Arial; margin:0; padding:20px; background:#f5f5f5;">
+<body style="font-family: Arial; padding:20px; background:#f5f5f5;">
 
   <h1 style="text-align:center;">🛍 Minha Loja</h1>
 
@@ -33,12 +32,13 @@
       const lista = document.getElementById("lista-produtos");
       lista.innerHTML = "";
 
-      db.collection("produtos").get().then((snapshot) => {
-        snapshot.forEach((doc) => {
+      db.collection("produtos").get().then(snapshot => {
+        snapshot.forEach(doc => {
           const data = doc.data();
 
           lista.innerHTML += `
-            <div style="background:white;padding:15px;margin:10px 0;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+            <div style="background:white;padding:15px;margin:15px 0;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+              <img src="${data.imagem}" style="width:100%;border-radius:10px;margin-bottom:10px;">
               <h3>${data.nome}</h3>
               <p><strong>R$ ${data.preco}</strong></p>
             </div>
