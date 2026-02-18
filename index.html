@@ -12,59 +12,42 @@
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-
-body{
-  font-family:'Poppins',sans-serif;
-  background:#0b1120;
-  color:white;
-}
+body{font-family:'Poppins',sans-serif;background:#0b1120;color:white;}
 
 /* HEADER */
-.header{
-  background:#111827;
-  padding:12px 15px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  position:sticky;
-  top:0;
-  z-index:100;
-}
-
-.logo{
-  font-weight:600;
-  font-size:18px;
-}
-
-.icons span{
-  margin-left:15px;
-  cursor:pointer;
-  font-size:18px;
-}
+.header{background:#111827;padding:12px 15px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-weight:600;font-size:18px;}
+.icons span{margin-left:15px;cursor:pointer;font-size:18px;}
 
 /* SEARCH */
-.search-box{
+.search-box{padding:10px 15px;}
+.search-box input{width:100%;padding:10px;border-radius:20px;border:none;background:#1f2937;color:white;}
+
+/* CATEGORIAS */
+.categorias{
+  display:flex;
+  overflow-x:auto;
+  gap:10px;
   padding:10px 15px;
 }
-
-.search-box input{
-  width:100%;
-  padding:10px;
+.categorias button{
+  min-width:120px;
+  padding:8px 12px;
   border-radius:20px;
   border:none;
   background:#1f2937;
   color:white;
+  cursor:pointer;
+  font-size:13px;
+}
+.categorias button.active{
+  background:#2563eb;
 }
 
 /* GRID */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:15px;
-  padding:15px;
-}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;padding:15px;}
 
-/* CARD PREMIUM */
+/* CARD (mantido igual) */
 .card{
   background:linear-gradient(145deg,#1e293b,#0f172a);
   border-radius:18px;
@@ -73,7 +56,6 @@ body{
   border:2px solid transparent;
   transition:0.4s;
 }
-
 .card::before{
   content:"";
   position:absolute;
@@ -83,71 +65,19 @@ body{
   z-index:-1;
   animation:animarBorda 3s linear infinite;
 }
-
 @keyframes animarBorda{
   0%{filter:hue-rotate(0deg);}
   100%{filter:hue-rotate(360deg);}
 }
-
-.card:hover{
-  transform:translateY(-6px) scale(1.03);
-  box-shadow:0 15px 35px rgba(0,255,150,0.4);
-}
-
-.card img{
-  width:100%;
-  height:120px;
-  object-fit:cover;
-}
-
-.card-content{
-  padding:10px;
-}
-
-.badge{
-  background:#065f46;
-  font-size:11px;
-  padding:4px 8px;
-  border-radius:20px;
-  display:inline-block;
-  margin-bottom:5px;
-}
-
-.preco-antigo{
-  text-decoration:line-through;
-  color:#9ca3af;
-  font-size:12px;
-}
-
-.preco{
-  font-weight:600;
-  font-size:16px;
-  margin:5px 0;
-}
-
-.pix{
-  font-size:11px;
-  color:#22c55e;
-  margin-bottom:5px;
-}
-
-/* BOTÃO PREMIUM */
-button{
-  width:100%;
-  padding:10px;
-  border:none;
-  border-radius:25px;
-  background:linear-gradient(45deg,#2563eb,#00c3ff);
-  color:white;
-  font-weight:700;
-  cursor:pointer;
-  transition:0.3s;
-}
-
-button:hover{
-  transform:scale(1.05);
-  box-shadow:0 0 15px #00c3ff;
-}
+.card:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 15px 35px rgba(0,255,150,0.4);}
+.card img{width:100%;height:120px;object-fit:cover;}
+.card-content{padding:10px;}
+.badge{background:#065f46;font-size:11px;padding:4px 8px;border-radius:20px;display:inline-block;margin-bottom:5px;}
+.preco-antigo{text-decoration:line-through;color:#9ca3af;font-size:12px;}
+.preco{font-weight:600;font-size:16px;margin:5px 0;}
+.pix{font-size:11px;color:#22c55e;margin-bottom:5px;}
+button{width:100%;padding:10px;border:none;border-radius:25px;background:linear-gradient(45deg,#2563eb,#00c3ff);color:white;font-weight:700;cursor:pointer;transition:0.3s;}
+button:hover{transform:scale(1.05);box-shadow:0 0 15px #00c3ff;}
 </style>
 </head>
 <body>
@@ -164,6 +94,8 @@ button:hover{
   <input type="text" id="search" placeholder="Buscar produto...">
 </div>
 
+<div class="categorias" id="listaCategorias"></div>
+
 <div class="grid" id="listaProdutos"></div>
 
 <script>
@@ -179,7 +111,22 @@ const db=firebase.firestore();
 const numeroWhats="5531993178577";
 
 let produtos=[];
+let categoriaSelecionada="";
 
+/* CARREGAR CATEGORIAS */
+db.collection("categorias").onSnapshot(snapshot=>{
+  const container=document.getElementById("listaCategorias");
+  container.innerHTML=`<button class="active" onclick="filtrarCategoria('')">Todas</button>`;
+
+  snapshot.forEach(doc=>{
+    let c=doc.data();
+    container.innerHTML+=`
+      <button onclick="filtrarCategoria('${c.nome}')">${c.nome}</button>
+    `;
+  });
+});
+
+/* CARREGAR PRODUTOS */
 db.collection("produtos").onSnapshot(snapshot=>{
   produtos=[];
   snapshot.forEach(doc=>{
@@ -188,11 +135,40 @@ db.collection("produtos").onSnapshot(snapshot=>{
   renderProdutos(produtos);
 });
 
+function filtrarCategoria(cat){
+  categoriaSelecionada=cat;
+
+  document.querySelectorAll(".categorias button").forEach(btn=>{
+    btn.classList.remove("active");
+    if(btn.innerText===cat || (cat==="" && btn.innerText==="Todas")){
+      btn.classList.add("active");
+    }
+  });
+
+  aplicarFiltros();
+}
+
+function aplicarFiltros(){
+  let lista=produtos;
+
+  if(categoriaSelecionada){
+    lista=lista.filter(p=>p.categoria===categoriaSelecionada);
+  }
+
+  let texto=document.getElementById("search").value.toLowerCase();
+  if(texto){
+    lista=lista.filter(p=>p.nome.toLowerCase().includes(texto));
+  }
+
+  renderProdutos(lista);
+}
+
 function renderProdutos(lista){
   const container=document.getElementById("listaProdutos");
   container.innerHTML="";
 
   lista.forEach(p=>{
+    if(!p.categoria) return; // evita produto sem categoria
 
     let precoAntigo=(p.preco*1.3).toFixed(2);
     let desconto=Math.floor(100-(p.preco/precoAntigo*100));
@@ -215,20 +191,11 @@ function renderProdutos(lista){
   });
 }
 
-document.getElementById("search").addEventListener("input",function(){
-  let texto=this.value.toLowerCase();
-  let filtrados=produtos.filter(p=>
-    p.nome.toLowerCase().includes(texto)
-  );
-  renderProdutos(filtrados);
-});
+document.getElementById("search").addEventListener("input",aplicarFiltros);
 
 function comprar(id,nome,preco){
-
   let mensagem=`Olá! Quero comprar: ${nome} - R$ ${preco}`;
-
   let url=`https://wa.me/${numeroWhats}?text=${encodeURIComponent(mensagem)}`;
-
   window.open(url,"_blank");
 
   db.collection("pedidos").add({
