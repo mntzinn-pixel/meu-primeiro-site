@@ -35,22 +35,22 @@ img{width:45px;height:45px;object-fit:cover;border-radius:6px}
 <h2>Login Admin</h2>
 <input id="email" placeholder="Email">
 <input id="senha" type="password" placeholder="Senha">
-<button class="primary" onclick="login()">Entrar</button>
+<button type="button" class="primary" id="btnLogin">Entrar</button>
 </div>
 
 <div id="app" class="hidden">
 
 <div class="topbar">
-<span class="menuBtn" onclick="toggleMenu()">☰</span>
+<span class="menuBtn" id="menuBtn">☰</span>
 <span>Painel Admin</span>
 </div>
 
 <div id="sidebar" class="sidebar">
-<button onclick="mostrar('dashboard')">📊 Dashboard</button>
-<button onclick="mostrar('produtos')">📦 Produtos</button>
-<button onclick="mostrar('categorias')">🏷 Categorias</button>
-<button onclick="mostrar('pedidos')">🛒 Pedidos</button>
-<button onclick="logout()">🚪 Sair</button>
+<button id="btnDash">📊 Dashboard</button>
+<button id="btnProd">📦 Produtos</button>
+<button id="btnCat">🏷 Categorias</button>
+<button id="btnPed">🛒 Pedidos</button>
+<button id="btnLogout">🚪 Sair</button>
 </div>
 
 <div class="content">
@@ -67,30 +67,23 @@ img{width:45px;height:45px;object-fit:cover;border-radius:6px}
 <input id="pNome" placeholder="Nome">
 <input id="pPreco" type="number" placeholder="Preço">
 <input id="pEstoque" type="number" placeholder="Estoque">
-<select id="pCategoria">
-<option value="">Selecione categoria</option>
-</select>
+<select id="pCategoria"></select>
 <input type="file" id="pImagem">
-<button type="button" class="primary" onclick="salvarProduto()">Salvar Produto</button>
+<button type="button" class="primary" id="btnSalvarProduto">Salvar Produto</button>
 </div>
-
-<table>
-<tbody id="listaProdutos"></tbody>
-</table>
+<table><tbody id="listaProdutos"></tbody></table>
 </div>
 
 <div id="categorias" class="section hidden">
 <div class="card">
 <input id="cNome" placeholder="Nome da categoria">
-<button type="button" class="primary" onclick="salvarCategoria()">Salvar Categoria</button>
+<button type="button" class="primary" id="btnSalvarCategoria">Salvar Categoria</button>
 </div>
 <ul id="listaCategorias"></ul>
 </div>
 
 <div id="pedidos" class="section hidden">
-<table>
-<tbody id="listaPedidos"></tbody>
-</table>
+<table><tbody id="listaPedidos"></tbody></table>
 </div>
 
 </div>
@@ -109,79 +102,75 @@ firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth();
 const db=firebase.firestore();
 const storage=firebase.storage();
+
 let editId=null;
+
+document.addEventListener("DOMContentLoaded",()=>{
+
+const loginPage=document.getElementById("loginPage");
+const app=document.getElementById("app");
+
+const pNome=document.getElementById("pNome");
+const pPreco=document.getElementById("pPreco");
+const pEstoque=document.getElementById("pEstoque");
+const pCategoria=document.getElementById("pCategoria");
+const pImagem=document.getElementById("pImagem");
+const cNome=document.getElementById("cNome");
+
+document.getElementById("menuBtn").onclick=()=>sidebar.classList.toggle("active");
+document.getElementById("btnDash").onclick=()=>mostrar("dashboard");
+document.getElementById("btnProd").onclick=()=>mostrar("produtos");
+document.getElementById("btnCat").onclick=()=>mostrar("categorias");
+document.getElementById("btnPed").onclick=()=>mostrar("pedidos");
+document.getElementById("btnLogout").onclick=()=>auth.signOut();
+document.getElementById("btnLogin").onclick=()=>{
+auth.signInWithEmailAndPassword(
+document.getElementById("email").value,
+document.getElementById("senha").value
+).catch(e=>alert(e.message));
+};
+
+function mostrar(sec){
+document.querySelectorAll(".section").forEach(s=>s.classList.add("hidden"));
+document.getElementById(sec).classList.remove("hidden");
+sidebar.classList.remove("active");
+}
 
 auth.onAuthStateChanged(user=>{
 if(user){
 loginPage.classList.add("hidden");
 app.classList.remove("hidden");
-}else{
-loginPage.classList.remove("hidden");
-app.classList.add("hidden");
 }
 });
 
-function login(){
-auth.signInWithEmailAndPassword(email.value,senha.value)
-.catch(e=>alert(e.message));
-}
-
-function logout(){auth.signOut();}
-
-function toggleMenu(){
-document.getElementById("sidebar").classList.toggle("active");
-}
-
-function mostrar(sec){
-document.querySelectorAll(".section").forEach(s=>s.classList.add("hidden"));
-document.getElementById(sec).classList.remove("hidden");
-document.getElementById("sidebar").classList.remove("active");
-}
-
-/* DASHBOARD */
-db.collection("produtos").onSnapshot(s=>totalProdutos.innerText=s.size);
-db.collection("categorias").onSnapshot(s=>totalCategorias.innerText=s.size);
-db.collection("vendas").onSnapshot(s=>{
-totalPedidos.innerText=s.size;
-let soma=0;
-s.forEach(doc=>soma+=doc.data().total||0);
-totalVendido.innerText=soma.toFixed(2);
-});
-
-/* CATEGORIAS */
-function salvarCategoria(){
+document.getElementById("btnSalvarCategoria").onclick=()=>{
 if(!cNome.value)return;
 db.collection("categorias").add({nome:cNome.value});
 cNome.value="";
-}
+};
 
 db.collection("categorias").onSnapshot(s=>{
-listaCategorias.innerHTML="";
 pCategoria.innerHTML="<option value=''>Selecione categoria</option>";
+document.getElementById("listaCategorias").innerHTML="";
 s.forEach(doc=>{
 let c=doc.data();
-listaCategorias.innerHTML+=`<li>${c.nome}</li>`;
 pCategoria.innerHTML+=`<option value="${c.nome}">${c.nome}</option>`;
+listaCategorias.innerHTML+=`<li>${c.nome}</li>`;
 });
 });
 
-/* PRODUTOS */
-async function salvarProduto(){
-
-if(!pNome.value || !pPreco.value || !pCategoria.value){
+document.getElementById("btnSalvarProduto").onclick=async ()=>{
+if(!pNome.value||!pPreco.value||!pCategoria.value){
 alert("Preencha tudo");
 return;
 }
 
-try{
-
 let url="";
-
-if(pImagem.files.length > 0){
-let file = pImagem.files[0];
-let ref = storage.ref().child("produtos/"+Date.now()+"_"+file.name);
+if(pImagem.files.length>0){
+let file=pImagem.files[0];
+let ref=storage.ref().child("produtos/"+Date.now()+"_"+file.name);
 await ref.put(file);
-url = await ref.getDownloadURL();
+url=await ref.getDownloadURL();
 }
 
 let dados={
@@ -190,16 +179,15 @@ preco:parseFloat(pPreco.value),
 estoque:parseInt(pEstoque.value)||0,
 categoria:pCategoria.value
 };
-
-if(url) dados.imagem=url;
+if(url)dados.imagem=url;
 
 if(editId){
 await db.collection("produtos").doc(editId).update(dados);
-alert("Produto atualizado!");
 editId=null;
+alert("Atualizado!");
 }else{
 await db.collection("produtos").add(dados);
-alert("Produto salvo!");
+alert("Salvo!");
 }
 
 pNome.value="";
@@ -207,12 +195,7 @@ pPreco.value="";
 pEstoque.value="";
 pImagem.value="";
 pCategoria.value="";
-
-}catch(erro){
-alert("Erro ao salvar: "+erro.message);
-}
-
-}
+};
 
 db.collection("produtos").onSnapshot(s=>{
 listaProdutos.innerHTML="";
@@ -223,7 +206,7 @@ listaProdutos.innerHTML+=`
 <td>${p.imagem?`<img src="${p.imagem}">`:""}</td>
 <td>${p.nome}<br>R$ ${p.preco}<br>${p.categoria}</td>
 <td>
-<button onclick="editar('${doc.id}','${p.nome}',${p.preco},${p.estoque||0},'${p.categoria}')" style="background:#16a34a;border:none;padding:5px;color:white;border-radius:6px">Editar</button>
+<button onclick="editId='${doc.id}';document.getElementById('pNome').value='${p.nome}';document.getElementById('pPreco').value='${p.preco}';document.getElementById('pEstoque').value='${p.estoque||0}';document.getElementById('pCategoria').value='${p.categoria}';mostrar('produtos')" style="background:#16a34a;border:none;padding:5px;color:white;border-radius:6px">Editar</button>
 <button onclick="db.collection('produtos').doc('${doc.id}').delete()" style="background:#dc2626;border:none;padding:5px;color:white;border-radius:6px">Excluir</button>
 </td>
 </tr>
@@ -231,26 +214,6 @@ listaProdutos.innerHTML+=`
 });
 });
 
-function editar(id,nome,preco,estoque,categoria){
-editId=id;
-pNome.value=nome;
-pPreco.value=preco;
-pEstoque.value=estoque;
-pCategoria.value=categoria;
-mostrar('produtos');
-}
-
-/* PEDIDOS */
-db.collection("vendas").onSnapshot(s=>{
-listaPedidos.innerHTML="";
-s.forEach(doc=>{
-let v=doc.data();
-listaPedidos.innerHTML+=`
-<tr>
-<td>${v.cliente||"-"}<br>R$ ${v.total||0}<br>${v.data||"-"}</td>
-</tr>
-`;
-});
 });
 </script>
 
