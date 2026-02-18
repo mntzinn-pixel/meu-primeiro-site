@@ -7,6 +7,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;}
@@ -17,6 +18,7 @@ button{padding:8px;border:none;background:#2563eb;color:white;border-radius:6px;
 table{width:100%;border-collapse:collapse;margin-top:10px;}
 th,td{padding:10px;border-bottom:1px solid #374151;}
 .login-box{max-width:300px;margin:100px auto;background:#1f2937;padding:30px;border-radius:10px;}
+img{width:50px;height:50px;object-fit:cover;border-radius:6px;}
 </style>
 </head>
 <body>
@@ -43,6 +45,7 @@ th,td{padding:10px;border-bottom:1px solid #374151;}
   <input id="pNome" placeholder="Nome">
   <input id="pPreco" type="number" placeholder="Preço">
   <input id="pEstoque" type="number" placeholder="Estoque">
+  <input type="file" id="pImagem">
   <select id="pCategoria">
     <option value="">Selecione uma categoria</option>
   </select>
@@ -54,6 +57,7 @@ th,td{padding:10px;border-bottom:1px solid #374151;}
   <table>
     <thead>
       <tr>
+        <th>Imagem</th>
         <th>Nome</th>
         <th>Preço</th>
         <th>Categoria</th>
@@ -70,103 +74,93 @@ th,td{padding:10px;border-bottom:1px solid #374151;}
 const firebaseConfig={
   apiKey:"AIzaSyDAnBNdufwLlMW4bZHK0mUgncmIezNSMTg",
   authDomain:"minha-loja-digital1.firebaseapp.com",
-  projectId:"minha-loja-digital1"
+  projectId:"minha-loja-digital1",
+  storageBucket:"minha-loja-digital1.appspot.com"
 };
 
 firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
 
 /* LOGIN */
 auth.onAuthStateChanged(user=>{
   if(user){
-    document.getElementById("loginPage").classList.add("hidden");
-    document.getElementById("painel").classList.remove("hidden");
+    loginPage.classList.add("hidden");
+    painel.classList.remove("hidden");
   }else{
-    document.getElementById("loginPage").classList.remove("hidden");
-    document.getElementById("painel").classList.add("hidden");
+    loginPage.classList.remove("hidden");
+    painel.classList.add("hidden");
   }
 });
 
 function login(){
-  auth.signInWithEmailAndPassword(
-    document.getElementById("email").value,
-    document.getElementById("senha").value
-  ).catch(e=>alert(e.message));
-}
-
-function logout(){
-  auth.signOut();
+  auth.signInWithEmailAndPassword(email.value,senha.value)
+  .catch(e=>alert(e.message));
 }
 
 /* ===== CATEGORIAS ===== */
 
 function salvarCategoria(){
-  const nome = document.getElementById("cNome").value.trim();
-  if(!nome) return alert("Digite o nome da categoria");
+  if(!cNome.value.trim()) return alert("Digite o nome da categoria");
 
-  db.collection("categorias").add({nome:nome})
-  .then(()=>{
-    alert("Categoria criada!");
-    document.getElementById("cNome").value="";
-  })
+  db.collection("categorias").add({nome:cNome.value})
+  .then(()=>cNome.value="")
   .catch(e=>alert(e.message));
 }
 
 db.collection("categorias").onSnapshot(snapshot=>{
-  const select = document.getElementById("pCategoria");
-  select.innerHTML = `<option value="">Selecione uma categoria</option>`;
-
+  pCategoria.innerHTML=`<option value="">Selecione uma categoria</option>`;
   snapshot.forEach(doc=>{
-    const c = doc.data();
-    select.innerHTML += `<option value="${c.nome}">${c.nome}</option>`;
+    let c=doc.data();
+    pCategoria.innerHTML+=`<option value="${c.nome}">${c.nome}</option>`;
   });
 });
 
 /* ===== PRODUTOS ===== */
 
-function salvarProduto(){
-  const nome = document.getElementById("pNome").value.trim();
-  const preco = parseFloat(document.getElementById("pPreco").value);
-  const estoque = parseInt(document.getElementById("pEstoque").value) || 0;
-  const categoria = document.getElementById("pCategoria").value;
-
-  if(!nome || !preco || !categoria){
+async function salvarProduto(){
+  if(!pNome.value || !pPreco.value || !pCategoria.value){
     return alert("Preencha nome, preço e categoria");
   }
 
-  db.collection("produtos").add({
-    nome:nome,
-    preco:preco,
-    estoque:estoque,
-    categoria:categoria
-  })
-  .then(()=>{
-    alert("Produto criado!");
-    document.getElementById("pNome").value="";
-    document.getElementById("pPreco").value="";
-    document.getElementById("pEstoque").value="";
-    document.getElementById("pCategoria").value="";
-  })
-  .catch(e=>alert(e.message));
+  let imagemURL="";
+
+  if(pImagem.files[0]){
+    const file = pImagem.files[0];
+    const ref = storage.ref().child("produtos/"+Date.now()+"_"+file.name);
+    await ref.put(file);
+    imagemURL = await ref.getDownloadURL();
+  }
+
+  await db.collection("produtos").add({
+    nome:pNome.value,
+    preco:parseFloat(pPreco.value),
+    estoque:parseInt(pEstoque.value)||0,
+    categoria:pCategoria.value,
+    imagem:imagemURL
+  });
+
+  alert("Produto criado!");
+  pNome.value="";
+  pPreco.value="";
+  pEstoque.value="";
+  pCategoria.value="";
+  pImagem.value="";
 }
 
 db.collection("produtos").onSnapshot(snapshot=>{
-  const tabela = document.getElementById("tabelaProdutos");
-  tabela.innerHTML="";
-
+  tabelaProdutos.innerHTML="";
   snapshot.forEach(doc=>{
-    const p = doc.data();
-
-    tabela.innerHTML+=`
+    let p=doc.data();
+    tabelaProdutos.innerHTML+=`
       <tr>
+        <td>${p.imagem ? `<img src="${p.imagem}">` : ""}</td>
         <td>${p.nome}</td>
         <td>R$ ${p.preco}</td>
         <td>${p.categoria}</td>
-        <td>
-          <button onclick="excluirProduto('${doc.id}')">Excluir</button>
-        </td>
+        <td><button onclick="excluirProduto('${doc.id}')">Excluir</button></td>
       </tr>`;
   });
 });
