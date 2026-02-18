@@ -1,183 +1,326 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Eclipseforn</title>
+<title>Minha Loja Gamer</title>
 
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Poppins',sans-serif;background:#050816;color:white;}
-.header{background:rgba(10,15,30,0.9);padding:14px;display:flex;justify-content:center;border-bottom:1px solid rgba(0,255,255,0.3);}
-.logo{font-family:'Orbitron',sans-serif;font-size:20px;background:linear-gradient(90deg,#00ffff,#7c3aed,#00ffff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:12px;}
-.categoria-titulo{grid-column:1/-1;margin:18px 0 8px;padding:8px 10px;text-align:center;font-family:'Orbitron';font-size:14px;letter-spacing:1.5px;color:#00ffff;position:relative;border-radius:10px;overflow:hidden;background:rgba(0,255,255,0.04);}
-.card{background:rgba(255,255,255,0.05);border-radius:14px;overflow:hidden;border:1px solid rgba(0,255,255,0.2);}
-.card img{width:100%;height:110px;object-fit:cover;}
-.card-content{padding:8px;}
-.preco{color:#00ffff;font-weight:700;}
-.quantidade-box{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:6px;}
-.quantidade-box button{width:26px;height:26px;border:none;border-radius:8px;background:linear-gradient(45deg,#00ffff,#7c3aed);color:white;font-weight:bold;}
-.cart-float{position:fixed;bottom:20px;right:20px;background:linear-gradient(45deg,#00ffff,#7c3aed);width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;z-index:999;}
-.cart-count{position:absolute;top:-5px;right:-5px;background:red;width:20px;height:20px;font-size:12px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
-.cart-modal{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;}
-.cart-content{background:#0f172a;width:90%;max-width:400px;padding:20px;border-radius:16px;}
+
+body{
+  font-family:'Poppins',sans-serif;
+  background:#050816;
+  color:white;
+  overflow-x:hidden;
+}
+
+/* PARTÍCULAS */
+canvas{
+  position:fixed;
+  top:0;
+  left:0;
+  z-index:-1;
+}
+
+/* HEADER */
+.header{
+  padding:12px;
+  text-align:center;
+  backdrop-filter:blur(10px);
+}
+
+.logo{
+  font-family:'Orbitron',sans-serif;
+  font-size:18px;
+  background:linear-gradient(90deg,#00ffff,#7c3aed,#00ffff);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+/* GRID */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+  padding:12px;
+}
+
+.categoria-titulo{
+  grid-column:1/-1;
+  padding:6px;
+  font-family:'Orbitron';
+  font-size:12px;
+  text-align:center;
+  border-radius:8px;
+  background:rgba(0,255,255,0.05);
+  margin:15px 0 5px;
+}
+
+.card{
+  background:rgba(255,255,255,0.05);
+  border-radius:12px;
+  backdrop-filter:blur(15px);
+  border:1px solid rgba(0,255,255,0.25);
+  overflow:hidden;
+  transition:0.3s;
+}
+
+.card:hover{
+  box-shadow:0 0 12px #00ffff,0 0 25px #7c3aed;
+  transform:scale(1.03);
+}
+
+.card img{
+  width:100%;
+  height:95px;
+  object-fit:cover;
+}
+
+.card-content{
+  padding:6px;
+  font-size:13px;
+}
+
+.preco{
+  color:#00ffff;
+  font-weight:700;
+}
+
+.quantidade-box{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:6px;
+  margin-top:5px;
+}
+
+.quantidade-box button{
+  width:24px;
+  height:24px;
+  border:none;
+  border-radius:6px;
+  background:linear-gradient(45deg,#00ffff,#7c3aed);
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.cart-float{
+  position:fixed;
+  bottom:18px;
+  right:18px;
+  background:linear-gradient(45deg,#00ffff,#7c3aed);
+  width:55px;
+  height:55px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:22px;
+  cursor:pointer;
+  box-shadow:0 0 20px #00ffff;
+}
+
+.cart-count{
+  position:absolute;
+  top:-4px;
+  right:-4px;
+  background:red;
+  width:18px;
+  height:18px;
+  font-size:11px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* MODAL */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.7);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal-content{
+  background:#0a0f1f;
+  width:90%;
+  max-width:400px;
+  border-radius:12px;
+  padding:15px;
+  border:1px solid #00ffff;
+  animation:fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn{
+  from{transform:scale(0.8);opacity:0;}
+  to{transform:scale(1);opacity:1;}
+}
+
+.modal h2{
+  text-align:center;
+  margin-bottom:10px;
+}
+
+.close{
+  text-align:right;
+  cursor:pointer;
+  color:red;
+  font-weight:bold;
+}
+
+.total{
+  margin-top:10px;
+  font-weight:bold;
+  color:#00ffff;
+}
 </style>
 </head>
+
 <body>
 
+<canvas id="particles"></canvas>
+
 <div class="header">
-  <div class="logo">Eclipseforn</div>
+  <div class="logo">MINHA LOJA GAMER</div>
 </div>
 
-<div class="grid" id="listaProdutos"></div>
+<div class="grid" id="produtos"></div>
 
-<div class="cart-float" onclick="abrirCarrinho()">
-  🛒
-  <div class="cart-count" id="cartCount">0</div>
+<div class="cart-float" onclick="abrirModal()">
+🛒
+<div class="cart-count" id="cart-count">0</div>
 </div>
 
-<div class="cart-modal" id="cartModal">
-  <div class="cart-content">
-    <div onclick="fecharCarrinho()" style="text-align:right;cursor:pointer;color:#ff4d4d;">Fechar ✖</div>
-    <div id="cartItems"></div>
-    <div id="cartTotal" style="margin-top:10px;font-weight:bold;color:#00ffff;"></div>
-    <button onclick="finalizarPedido()">Finalizar Pedido</button>
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <div class="close" onclick="fecharModal()">X</div>
+    <h2>Seu Carrinho</h2>
+    <div id="lista-carrinho"></div>
+    <div class="total" id="total"></div>
   </div>
 </div>
 
-<script>
-const firebaseConfig={
-  apiKey:"AIzaSyDAnBNdufwLlMW4bZHK0mUgncmIezNSMTg",
-  authDomain:"minha-loja-digital1.firebaseapp.com",
-  projectId:"minha-loja-digital1"
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDAnBNdufwLlMW4bZHK0mUgncmIezNSMTg",
+  authDomain: "minha-loja-digital1.firebaseapp.com",
+  projectId: "minha-loja-digital1",
+  storageBucket: "minha-loja-digital1.firebasestorage.app",
+  messagingSenderId: "119834670597",
+  appId: "1:119834670597:web:36edb828d7fdded6678e6c"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db=firebase.firestore();
-const numeroWhats="5531993178577";
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-let carrinho={};
-let produtosCache={};
-
-db.collection("produtos").onSnapshot(snapshot=>{
-  const container=document.getElementById("listaProdutos");
-  container.innerHTML="";
-  produtosCache={};
-  let categorias={};
-
-  snapshot.forEach(doc=>{
-    let p=doc.data();
-    produtosCache[doc.id]={...p,id:doc.id};
-    let cat=p.categoria||"Outros";
-    if(!categorias[cat])categorias[cat]=[];
-    categorias[cat].push({...p,id:doc.id});
-  });
-
-  Object.keys(categorias).forEach(cat=>{
-    container.innerHTML+=`<div class="categoria-titulo">${cat}</div>`;
-    categorias[cat].forEach(p=>{
-      const semEstoque=(p.estoque!==undefined && p.estoque<=0);
-      container.innerHTML+=`
-        <div class="card">
-          <img src="${p.imagem}">
-          <div class="card-content">
-            <div>${p.nome}</div>
-            <div class="preco">R$ ${p.preco}</div>
-            <div style="font-size:11px;color:#ccc;">
-              ${semEstoque?'Sem estoque':'Estoque: '+(p.estoque ?? '∞')}
-            </div>
-            ${!semEstoque?`
-              <div class="quantidade-box">
-                <button onclick="alterarQtd('${p.id}',-1)">-</button>
-                <span id="qtd-${p.id}">1</span>
-                <button onclick="alterarQtd('${p.id}',1)">+</button>
-              </div>
-              <button onclick="adicionarCarrinho('${p.id}')">Adicionar ao Carrinho</button>
-            `:`<button disabled style="opacity:0.5;">ESGOTADO</button>`}
-          </div>
-        </div>`;
-    });
-  });
-});
-
-function alterarQtd(id,valor){
-  let el=document.getElementById("qtd-"+id);
-  let qtd=parseInt(el.innerText);
-  qtd+=valor;
-  if(qtd<1)qtd=1;
-  el.innerText=qtd;
-}
-
-function adicionarCarrinho(id){
-  const qtd=parseInt(document.getElementById("qtd-"+id).innerText);
-  if(!carrinho[id])carrinho[id]=0;
-  carrinho[id]+=qtd;
-  atualizarCarrinho();
-}
+let carrinho = {};
+let totalItens = 0;
 
 function atualizarCarrinho(){
-  let totalItens=0;
-  Object.values(carrinho).forEach(q=>totalItens+=q);
-  document.getElementById("cartCount").innerText=totalItens;
+  document.getElementById("cart-count").innerText = totalItens;
+
+  let lista = "";
+  let total = 0;
+
+  for(let nome in carrinho){
+    let item = carrinho[nome];
+    lista += `<div>${nome} x${item.qtd} - R$ ${item.preco * item.qtd}</div>`;
+    total += item.preco * item.qtd;
+  }
+
+  document.getElementById("lista-carrinho").innerHTML = lista;
+  document.getElementById("total").innerText = "Total: R$ " + total;
 }
 
-function abrirCarrinho(){
-  renderCarrinho();
-  document.getElementById("cartModal").style.display="flex";
+window.abrirModal = function(){
+  document.getElementById("modal").style.display="flex";
 }
 
-function fecharCarrinho(){
-  document.getElementById("cartModal").style.display="none";
+window.fecharModal = function(){
+  document.getElementById("modal").style.display="none";
 }
 
-function renderCarrinho(){
-  const container=document.getElementById("cartItems");
-  container.innerHTML="";
-  let total=0;
-  Object.keys(carrinho).forEach(id=>{
-    const p=produtosCache[id];
-    const qtd=carrinho[id];
-    total+=p.preco*qtd;
-    container.innerHTML+=`
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-        ${p.nome} x${qtd}
-        <span>R$ ${(p.preco*qtd).toFixed(2)}</span>
-      </div>`;
+async function carregarProdutos(){
+  const querySnapshot = await getDocs(collection(db,"produtos"));
+  const grid = document.getElementById("produtos");
+
+  querySnapshot.forEach(doc=>{
+    const p = doc.data();
+    grid.innerHTML += `
+    <div class="card">
+      <img src="${p.imagem}">
+      <div class="card-content">
+        <div>${p.nome}</div>
+        <div class="preco">R$ ${p.preco}</div>
+        <div class="quantidade-box">
+          <button onclick="alterarQtd('${p.nome}',${p.preco},-1)">-</button>
+          <span id="qtd-${p.nome}">0</span>
+          <button onclick="alterarQtd('${p.nome}',${p.preco},1)">+</button>
+        </div>
+      </div>
+    </div>`;
   });
-  document.getElementById("cartTotal").innerText="Total: R$ "+total.toFixed(2);
 }
 
-function finalizarPedido(){
-  if(Object.keys(carrinho).length===0){alert("Carrinho vazio!");return;}
-  let mensagem="Olá! Quero finalizar meu pedido:%0A%0A";
-  let total=0;
-  let batch=db.batch();
+window.alterarQtd = function(nome,preco,valor){
+  const span = document.getElementById("qtd-"+nome);
+  let qtd = parseInt(span.innerText);
+  qtd += valor;
+  if(qtd<0) qtd=0;
+  span.innerText=qtd;
 
-  Object.keys(carrinho).forEach(id=>{
-    const p=produtosCache[id];
-    const qtd=carrinho[id];
-    total+=p.preco*qtd;
-    mensagem+=`- ${p.nome} x${qtd} - R$ ${(p.preco*qtd).toFixed(2)}%0A`;
-    if(p.estoque!==undefined){
-      batch.update(db.collection("produtos").doc(id),{estoque:p.estoque-qtd});
-    }
-  });
+  if(!carrinho[nome]) carrinho[nome]={qtd:0,preco:preco};
+  carrinho[nome].qtd=qtd;
+  if(qtd==0) delete carrinho[nome];
 
-  mensagem+=`%0ATotal: R$ ${total.toFixed(2)}`;
-  batch.commit();
-
-  window.open(`https://wa.me/${numeroWhats}?text=${mensagem}`,"_blank");
-
-  carrinho={};
+  totalItens = Object.values(carrinho).reduce((a,b)=>a+b.qtd,0);
   atualizarCarrinho();
-  fecharCarrinho();
 }
+
+carregarProdutos();
+</script>
+
+<script>
+/* PARTÍCULAS */
+const canvas=document.getElementById("particles");
+const ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+
+let particles=[];
+for(let i=0;i<60;i++){
+  particles.push({
+    x:Math.random()*canvas.width,
+    y:Math.random()*canvas.height,
+    radius:Math.random()*2,
+    dx:(Math.random()-0.5)*0.5,
+    dy:(Math.random()-0.5)*0.5
+  });
+}
+
+function animate(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.radius,0,Math.PI*2);
+    ctx.fillStyle="#00ffff";
+    ctx.fill();
+    p.x+=p.dx;
+    p.y+=p.dy;
+  });
+  requestAnimationFrame(animate);
+}
+animate();
 </script>
 
 </body>
