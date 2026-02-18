@@ -60,9 +60,6 @@ th,td{padding:10px;border-bottom:1px solid #374151;}
 <div id="dashboard">
   <div class="card">
     <h3>Total Vendido: R$ <span id="totalVendido">0</span></h3>
-    <p>Total de Visitas: <span id="totalVisitas">0</span></p>
-    <p>Total de Cliques: <span id="totalCliques">0</span></p>
-    <p>Produto Mais Clicado: <span id="produtoTop">Nenhum</span></p>
     <canvas id="grafico"></canvas>
   </div>
 </div>
@@ -72,9 +69,11 @@ th,td{padding:10px;border-bottom:1px solid #374151;}
     <h3>Criar / Editar Produto</h3>
     <input id="pNome" placeholder="Nome">
     <input id="pPreco" type="number" placeholder="Preço">
-    <input type="number" id="pEstoque" placeholder="Estoque">
+    <input id="pEstoque" type="number" placeholder="Estoque">
     <input type="file" id="pImagem">
-    <select id="pCategoria"></select>
+    <select id="pCategoria">
+      <option value="">Selecione uma categoria</option>
+    </select>
     <input type="hidden" id="pId">
     <button class="btn" onclick="salvarProduto()">Salvar</button>
   </div>
@@ -86,7 +85,6 @@ th,td{padding:10px;border-bottom:1px solid #374151;}
           <th>Nome</th>
           <th>Preço</th>
           <th>Estoque</th>
-          <th>Cliques</th>
           <th>Ações</th>
         </tr>
       </thead>
@@ -130,7 +128,6 @@ firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth();
 const db=firebase.firestore();
 const storage=firebase.storage();
-const sidebar=document.getElementById("sidebar");
 
 /* LOGIN */
 auth.onAuthStateChanged(user=>{
@@ -142,9 +139,15 @@ auth.onAuthStateChanged(user=>{
     painel.classList.add("hidden");
   }
 });
-function login(){ auth.signInWithEmailAndPassword(email.value,senha.value).catch(()=>alert("Erro no login")); }
+
+function login(){
+  auth.signInWithEmailAndPassword(email.value,senha.value)
+  .catch(()=>alert("Erro no login"));
+}
+
 function logout(){ auth.signOut(); }
 function toggleMenu(){ sidebar.classList.toggle("active"); }
+
 function mostrar(sec){
   ["dashboard","produtos","categorias"].forEach(s=>document.getElementById(s).classList.add("hidden"));
   document.getElementById(sec).classList.remove("hidden");
@@ -157,6 +160,7 @@ db.collection("pedidos").onSnapshot(snapshot=>{
   let total=0;
   snapshot.forEach(doc=> total+=doc.data().total||0 );
   totalVendido.innerText=total.toFixed(2);
+
   if(grafico)grafico.destroy();
   grafico=new Chart(document.getElementById("grafico"),{
     type:"line",
@@ -164,66 +168,106 @@ db.collection("pedidos").onSnapshot(snapshot=>{
   });
 });
 
-/* VISITAS */
-db.collection("visitas").onSnapshot(snapshot=>{
-  totalVisitas.innerText=snapshot.size;
-});
-
-/* PRODUTOS + CLIQUES */
-db.collection("produtos").onSnapshot(snapshot=>{
-  tabelaProdutos.innerHTML="";
-  let totalCliquesGeral=0;
-  let maior=0;
-  let nomeTop="Nenhum";
+/* CATEGORIAS */
+db.collection("categorias").onSnapshot(snapshot=>{
+  tabelaCategorias.innerHTML="";
+  pCategoria.innerHTML=`<option value="">Selecione uma categoria</option>`;
 
   snapshot.forEach(doc=>{
+    let c=doc.data();
+
+    tabelaCategorias.innerHTML+=`
+      <tr>
+        <td>${c.nome}</td>
+        <td>
+          <button onclick="editarCategoria('${doc.id}','${c.nome}')">Editar</button>
+          <button class="btn-del" onclick="excluirCategoria('${doc.id}')">Excluir</button>
+        </td>
+      </tr>`;
+
+    pCategoria.innerHTML+=`<option value="${c.nome}">${c.nome}</option>`;
+  });
+});
+
+function salvarCategoria(){
+  if(!cNome.value.trim()) return alert("Digite o nome da categoria");
+
+  if(cId.value){
+    db.collection("categorias").doc(cId.value).update({nome:cNome.value});
+  }else{
+    db.collection("categorias").add({nome:cNome.value});
+  }
+
+  cNome.value="";
+  cId.value="";
+}
+
+function editarCategoria(id,nome){
+  cId.value=id;
+  cNome.value=nome;
+}
+
+function excluirCategoria(id){
+  if(confirm("Excluir categoria?")){
+    db.collection("categorias").doc(id).delete();
+  }
+}
+
+/* PRODUTOS */
+db.collection("produtos").onSnapshot(snapshot=>{
+  tabelaProdutos.innerHTML="";
+  snapshot.forEach(doc=>{
     let p=doc.data();
-    let estoque=p.estoque??0;
-    let cliques=p.cliques??0;
-
-    totalCliquesGeral+=cliques;
-    if(cliques>maior){ maior=cliques; nomeTop=p.nome; }
-
     tabelaProdutos.innerHTML+=`
       <tr>
         <td>${p.nome}</td>
         <td>R$ ${p.preco}</td>
-        <td>${estoque}</td>
-        <td>${cliques}</td>
+        <td>${p.estoque||0}</td>
         <td>
-          <button onclick="editarProduto('${doc.id}','${p.nome}','${p.preco}','${p.categoria}','${estoque}')">Editar</button>
+          <button onclick="editarProduto('${doc.id}','${p.nome}','${p.preco}','${p.categoria}','${p.estoque||0}')">Editar</button>
           <button class="btn-del" onclick="excluirProduto('${doc.id}')">Excluir</button>
         </td>
       </tr>`;
   });
-
-  totalCliques.innerText=totalCliquesGeral;
-  produtoTop.innerText=nomeTop;
 });
 
-/* SALVAR PRODUTO */
 async function salvarProduto(){
-  let id=pId.value;
-  let nome=pNome.value;
-  let preco=parseFloat(pPreco.value);
-  let categoria=pCategoria.value;
-  let estoque=parseInt(pEstoque.value)||0;
-  let arquivo=pImagem.files[0];
-  let imagemURL="";
-
-  if(arquivo){
-    const ref=storage.ref("produtos/"+Date.now()+"_"+arquivo.name);
-    await ref.put(arquivo);
-    imagemURL=await ref.getDownloadURL();
+  if(!pNome.value || !pPreco.value || !pCategoria.value){
+    return alert("Preencha nome, preço e categoria");
   }
 
-  let dados={nome,preco,categoria,estoque};
-  if(imagemURL) dados.imagem=imagemURL;
+  let dados={
+    nome:pNome.value,
+    preco:parseFloat(pPreco.value),
+    categoria:pCategoria.value,
+    estoque:parseInt(pEstoque.value)||0
+  };
 
-  if(id) db.collection("produtos").doc(id).update(dados);
-  else db.collection("produtos").add({...dados,cliques:0});
+  if(pId.value){
+    await db.collection("produtos").doc(pId.value).update(dados);
+  }else{
+    await db.collection("produtos").add({...dados,cliques:0});
+  }
 
-  pNome.value="";pPreco.value="";pImagem.value="";pId.value="";pEstoque.value="";
+  pNome.value="";
+  pPreco.value="";
+  pEstoque.value="";
+  pCategoria.value="";
+  pId.value="";
+}
+
+function editarProduto(id,nome,preco,categoria,estoque){
+  pId.value=id;
+  pNome.value=nome;
+  pPreco.value=preco;
+  pCategoria.value=categoria;
+  pEstoque.value=estoque;
+}
+
+function excluirProduto(id){
+  if(confirm("Excluir produto?")){
+    db.collection("produtos").doc(id).delete();
+  }
 }
 </script>
 
