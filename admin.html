@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Painel Admin</title>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -10,40 +11,81 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
 <style>
-body{margin:0;font-family:Arial;background:#0f172a;color:white;display:flex}
+body{margin:0;font-family:Arial;background:#0f172a;color:white}
+.topbar{
+background:#111827;
+padding:15px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+font-size:18px;
+}
+.menuBtn{font-size:22px;cursor:pointer}
 .sidebar{
-width:220px;background:#111827;height:100vh;padding:20px;box-sizing:border-box;
+position:fixed;
+top:0;
+left:-250px;
+width:250px;
+height:100%;
+background:#111827;
+padding:20px;
+transition:0.3s;
+z-index:1000;
 }
-.sidebar h2{margin-bottom:20px}
 .sidebar button{
-width:100%;padding:10px;margin-bottom:10px;background:#1f2937;border:none;color:white;border-radius:6px;cursor:pointer
+width:100%;
+padding:15px;
+margin-bottom:10px;
+background:#1f2937;
+border:none;
+color:white;
+border-radius:8px;
+font-size:16px;
 }
-.main{
-flex:1;padding:20px;overflow:auto
-}
+.sidebar.active{left:0}
+.content{padding:15px}
 .card{
-background:#1f2937;padding:20px;border-radius:10px;margin-bottom:20px
+background:#1f2937;
+padding:15px;
+border-radius:10px;
+margin-bottom:15px;
 }
 input,select{
-width:100%;padding:8px;margin:5px 0;background:#111827;border:1px solid #374151;color:white
+width:100%;
+padding:12px;
+margin:6px 0;
+background:#0f172a;
+border:1px solid #374151;
+color:white;
+border-radius:6px;
+font-size:16px;
 }
 button.primary{
-background:#2563eb;border:none;padding:10px;border-radius:6px;color:white;cursor:pointer
+background:#2563eb;
+border:none;
+padding:12px;
+border-radius:8px;
+color:white;
+font-size:16px;
+width:100%;
 }
-table{width:100%;border-collapse:collapse}
-th,td{padding:10px;border-bottom:1px solid #374151;text-align:left}
+table{width:100%;font-size:14px}
+th,td{padding:8px;border-bottom:1px solid #374151}
 img{width:50px;height:50px;object-fit:cover;border-radius:6px}
 .hidden{display:none}
 .login{
-width:300px;margin:150px auto;background:#1f2937;padding:30px;border-radius:10px
+max-width:350px;
+margin:120px auto;
+background:#1f2937;
+padding:20px;
+border-radius:10px;
 }
-.stats{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-gap:15px;
-}
-.stat-box{
-background:#1f2937;padding:20px;border-radius:10px
+.stat{
+background:#1f2937;
+padding:15px;
+border-radius:10px;
+margin-bottom:10px;
+font-size:18px;
 }
 </style>
 </head>
@@ -58,8 +100,12 @@ background:#1f2937;padding:20px;border-radius:10px
 
 <div id="app" class="hidden">
 
-<div class="sidebar">
-<h2>Painel</h2>
+<div class="topbar">
+<span class="menuBtn" onclick="toggleMenu()">☰</span>
+<span>Painel Admin</span>
+</div>
+
+<div id="sidebar" class="sidebar">
 <button onclick="mostrar('dashboard')">📊 Dashboard</button>
 <button onclick="mostrar('produtos')">📦 Produtos</button>
 <button onclick="mostrar('categorias')">🏷 Categorias</button>
@@ -67,67 +113,42 @@ background:#1f2937;padding:20px;border-radius:10px
 <button onclick="logout()">🚪 Sair</button>
 </div>
 
-<div class="main">
+<div class="content">
 
 <div id="dashboard" class="section">
-<h2>Dashboard</h2>
-<div class="stats">
-<div class="stat-box">Produtos: <span id="totalProdutos">0</span></div>
-<div class="stat-box">Categorias: <span id="totalCategorias">0</span></div>
-<div class="stat-box">Pedidos: <span id="totalPedidos">0</span></div>
-<div class="stat-box">Total Vendido: R$ <span id="totalVendido">0</span></div>
-</div>
+<div class="stat">Produtos: <span id="totalProdutos">0</span></div>
+<div class="stat">Categorias: <span id="totalCategorias">0</span></div>
+<div class="stat">Pedidos: <span id="totalPedidos">0</span></div>
+<div class="stat">Total Vendido: R$ <span id="totalVendido">0</span></div>
 </div>
 
 <div id="produtos" class="section hidden">
-<h2>Produtos</h2>
-
 <div class="card">
 <input id="pNome" placeholder="Nome">
 <input id="pPreco" type="number" placeholder="Preço">
 <input id="pEstoque" type="number" placeholder="Estoque">
-<input type="file" id="pImagem">
 <select id="pCategoria">
 <option value="">Selecione categoria</option>
 </select>
+<input type="file" id="pImagem">
 <button class="primary" onclick="salvarProduto()">Salvar Produto</button>
 </div>
 
 <table>
-<thead>
-<tr>
-<th>Imagem</th>
-<th>Nome</th>
-<th>Preço</th>
-<th>Categoria</th>
-<th></th>
-</tr>
-</thead>
 <tbody id="listaProdutos"></tbody>
 </table>
 </div>
 
 <div id="categorias" class="section hidden">
-<h2>Categorias</h2>
-
 <div class="card">
 <input id="cNome" placeholder="Nome da categoria">
 <button class="primary" onclick="salvarCategoria()">Salvar Categoria</button>
 </div>
-
 <ul id="listaCategorias"></ul>
 </div>
 
 <div id="pedidos" class="section hidden">
-<h2>Pedidos</h2>
 <table>
-<thead>
-<tr>
-<th>Cliente</th>
-<th>Total</th>
-<th>Data</th>
-</tr>
-</thead>
 <tbody id="listaPedidos"></tbody>
 </table>
 </div>
@@ -147,6 +168,7 @@ firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth();
 const db=firebase.firestore();
 const storage=firebase.storage();
+let editId=null;
 
 auth.onAuthStateChanged(user=>{
 if(user){
@@ -162,31 +184,27 @@ function login(){
 auth.signInWithEmailAndPassword(email.value,senha.value)
 .catch(e=>alert(e.message));
 }
-
 function logout(){auth.signOut();}
-
+function toggleMenu(){sidebar.classList.toggle("active");}
 function mostrar(sec){
 document.querySelectorAll(".section").forEach(s=>s.classList.add("hidden"));
 document.getElementById(sec).classList.remove("hidden");
+sidebar.classList.remove("active");
 }
 
 /* DASHBOARD */
-db.collection("produtos").onSnapshot(s=>{
-totalProdutos.innerText=s.size;
-});
-db.collection("categorias").onSnapshot(s=>{
-totalCategorias.innerText=s.size;
-});
+db.collection("produtos").onSnapshot(s=>totalProdutos.innerText=s.size);
+db.collection("categorias").onSnapshot(s=>totalCategorias.innerText=s.size);
 db.collection("vendas").onSnapshot(s=>{
 totalPedidos.innerText=s.size;
 let soma=0;
-s.forEach(doc=>{soma+=doc.data().total||0});
+s.forEach(doc=>soma+=doc.data().total||0);
 totalVendido.innerText=soma.toFixed(2);
 });
 
 /* CATEGORIAS */
 function salvarCategoria(){
-if(!cNome.value) return;
+if(!cNome.value)return;
 db.collection("categorias").add({nome:cNome.value});
 cNome.value="";
 }
@@ -202,7 +220,7 @@ pCategoria.innerHTML+=`<option value="${c.nome}">${c.nome}</option>`;
 
 /* PRODUTOS */
 async function salvarProduto(){
-if(!pNome.value||!pPreco.value||!pCategoria.value) return alert("Preencha os campos");
+if(!pNome.value||!pPreco.value||!pCategoria.value)return alert("Preencha tudo");
 
 let url="";
 if(pImagem.files[0]){
@@ -212,13 +230,21 @@ await ref.put(file);
 url=await ref.getDownloadURL();
 }
 
-await db.collection("produtos").add({
+let dados={
 nome:pNome.value,
 preco:parseFloat(pPreco.value),
 estoque:parseInt(pEstoque.value)||0,
-categoria:pCategoria.value,
-imagem:url
-});
+categoria:pCategoria.value
+};
+
+if(url)dados.imagem=url;
+
+if(editId){
+await db.collection("produtos").doc(editId).update(dados);
+editId=null;
+}else{
+await db.collection("produtos").add(dados);
+}
 
 pNome.value="";
 pPreco.value="";
@@ -234,14 +260,24 @@ let p=doc.data();
 listaProdutos.innerHTML+=`
 <tr>
 <td>${p.imagem?`<img src="${p.imagem}">`:""}</td>
-<td>${p.nome}</td>
-<td>R$ ${p.preco}</td>
-<td>${p.categoria}</td>
-<td><button onclick="db.collection('produtos').doc('${doc.id}').delete()">Excluir</button></td>
+<td>${p.nome}<br>R$ ${p.preco}<br>${p.categoria}</td>
+<td>
+<button onclick="editar('${doc.id}','${p.nome}',${p.preco},${p.estoque||0},'${p.categoria}')" style="background:#16a34a;border:none;padding:6px;color:white;border-radius:6px">Editar</button>
+<button onclick="db.collection('produtos').doc('${doc.id}').delete()" style="background:#dc2626;border:none;padding:6px;color:white;border-radius:6px">Excluir</button>
+</td>
 </tr>
 `;
 });
 });
+
+function editar(id,nome,preco,estoque,categoria){
+editId=id;
+pNome.value=nome;
+pPreco.value=preco;
+pEstoque.value=estoque;
+pCategoria.value=categoria;
+mostrar('produtos');
+}
 
 /* PEDIDOS */
 db.collection("vendas").onSnapshot(s=>{
@@ -250,9 +286,7 @@ s.forEach(doc=>{
 let v=doc.data();
 listaPedidos.innerHTML+=`
 <tr>
-<td>${v.cliente||"-"}</td>
-<td>R$ ${v.total||0}</td>
-<td>${v.data||"-"}</td>
+<td>${v.cliente||"-"}<br>R$ ${v.total||0}<br>${v.data||"-"}</td>
 </tr>
 `;
 });
