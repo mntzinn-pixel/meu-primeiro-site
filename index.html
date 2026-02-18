@@ -30,17 +30,14 @@ body{font-family:'Poppins',sans-serif;background:#050816;color:white;}
   -webkit-text-fill-color:transparent;
 }
 
-/* HERO */
 .hero-info{
   text-align:center;
   padding:14px 10px;
   font-size:13px;
   color:#cbd5e1;
-  line-height:1.6;
   border-bottom:1px solid rgba(0,255,255,0.15);
 }
 
-/* GRID */
 .grid{
   display:grid;
   grid-template-columns:repeat(2,1fr);
@@ -48,12 +45,11 @@ body{font-family:'Poppins',sans-serif;background:#050816;color:white;}
   padding:14px;
 }
 
-/* CATEGORIA RGB BORDA */
+/* CATEGORIA RGB */
 .categoria-titulo{
   grid-column:1/-1;
   text-align:center;
   padding:10px;
-  font-family:'Orbitron',sans-serif;
   background:#0f172a;
   border-radius:14px;
   position:relative;
@@ -73,7 +69,7 @@ body{font-family:'Poppins',sans-serif;background:#050816;color:white;}
   mask-composite:exclude;
 }
 
-/* CARD RGB BORDA */
+/* CARD RGB */
 .card{
   padding:2px;
   border-radius:18px;
@@ -110,10 +106,17 @@ body{font-family:'Poppins',sans-serif;background:#050816;color:white;}
   margin-top:4px;
 }
 
-.btn-add{
+.quantidade-box{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
   margin-top:8px;
-  width:100%;
-  padding:6px;
+}
+
+.quantidade-box button{
+  width:28px;
+  height:28px;
   border:none;
   border-radius:8px;
   background:linear-gradient(45deg,#00ffff,#7c3aed);
@@ -160,7 +163,19 @@ body{font-family:'Poppins',sans-serif;background:#050816;color:white;}
   justify-content:center;
 }
 
-/* MODAL */
+.toast{
+  position:fixed;
+  bottom:100px;
+  left:50%;
+  transform:translateX(-50%);
+  background:linear-gradient(45deg,#00ffff,#7c3aed);
+  padding:10px 16px;
+  border-radius:12px;
+  opacity:0;
+  transition:0.4s;
+}
+.toast.show{opacity:1;}
+
 .modal-bg{
   position:fixed;
   inset:0;
@@ -190,20 +205,6 @@ body{font-family:'Poppins',sans-serif;background:#050816;color:white;}
   cursor:pointer;
 }
 
-/* TOAST */
-.toast{
-  position:fixed;
-  bottom:100px;
-  left:50%;
-  transform:translateX(-50%);
-  background:linear-gradient(45deg,#00ffff,#7c3aed);
-  padding:10px 16px;
-  border-radius:12px;
-  opacity:0;
-  transition:0.4s;
-}
-.toast.show{opacity:1;}
-
 @keyframes rgb{
   0%{background-position:0% 50%;}
   100%{background-position:400% 50%;}
@@ -229,7 +230,7 @@ body{font-family:'Poppins',sans-serif;background:#050816;color:white;}
 <div class="cart-count" id="cartCount">0</div>
 </div>
 
-<div class="toast" id="toast">Produto adicionado ao carrinho</div>
+<div class="toast" id="toast">Produto adicionado</div>
 
 <div class="modal-bg" id="modalBg">
   <div class="modal">
@@ -278,7 +279,11 @@ db.collection("produtos").onSnapshot((snapshot)=>{
             <div class="estoque">Estoque: ${p.estoque}</div>
             ${
               p.estoque>0?
-              `<button class="btn-add" onclick="adicionarCarrinho('${p.nome}',${p.preco})">Adicionar ao Carrinho</button>`
+              `<div class="quantidade-box">
+                <button onclick="alterarQtd('${p.id}','${p.nome}',${p.preco},${p.estoque},-1)">-</button>
+                <span id="qtd-${p.id}">0</span>
+                <button onclick="alterarQtd('${p.id}','${p.nome}',${p.preco},${p.estoque},1)">+</button>
+              </div>`
               :
               `<div class="esgotado">ESGOTADO</div>`
             }
@@ -289,9 +294,17 @@ db.collection("produtos").onSnapshot((snapshot)=>{
   }
 });
 
-function adicionarCarrinho(nome,preco){
-  if(!carrinho[nome]) carrinho[nome]={qtd:0,preco};
-  carrinho[nome].qtd++;
+function alterarQtd(id,nome,preco,estoque,valor){
+  let span=document.getElementById("qtd-"+id);
+  let qtd=parseInt(span.innerText);
+  qtd+=valor;
+  if(qtd<0) qtd=0;
+  if(qtd>estoque) qtd=estoque;
+  span.innerText=qtd;
+
+  if(qtd>0){carrinho[nome]={qtd,preco};}
+  else{delete carrinho[nome];}
+
   atualizarCarrinho();
   mostrarToast();
 }
@@ -312,7 +325,7 @@ function atualizarCarrinho(){
 function mostrarToast(){
   let t=document.getElementById("toast");
   t.classList.add("show");
-  setTimeout(()=>{t.classList.remove("show");},1500);
+  setTimeout(()=>{t.classList.remove("show");},1000);
 }
 
 function abrirModal(){
